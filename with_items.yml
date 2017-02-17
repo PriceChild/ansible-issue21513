@@ -1,0 +1,42 @@
+---
+- name: test
+  hosts: all
+  tasks:
+    - name: Find directories to install.
+      delegate_to: localhost
+      connection: local
+      run_once: true
+      find:
+        paths: "{{ playbook_dir }}/src"
+        file_type: directory
+        recurse: yes
+      register: webservice
+      become: false
+
+    - debug:
+        var: webservice
+
+    - name: copy
+      file: 
+        path: "{{ playbook_dir }}/dest/{{ item.path[(playbook_dir + '/src/').__len__():] }}"
+        state: directory
+      with_items: "{{ webservice.files }}"
+      when: item.path is defined
+
+    - name: Find files to install.
+      delegate_to: localhost
+      connection: local
+      run_once: true
+      find:
+        paths: "{{ playbook_dir }}/src"
+        file_type: "file"
+        recurse: yes
+      register: webservice
+      become: false
+
+    - name: copy
+      copy: 
+        src: "{{ item.path }}"
+        dest: "{{ playbook_dir }}/dest/{{ item.path[(playbook_dir + '/src/').__len__():] }}"
+      with_items: "{{ webservice.files }}"
+      when: item.path is defined
